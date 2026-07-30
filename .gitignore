@@ -4,4 +4,4 @@ __pycache__/
 .pytest_cache/
 .env
 data/
-work/uv-cache/
+work/
