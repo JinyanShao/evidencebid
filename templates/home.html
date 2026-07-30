@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Projects · EvidenceBid{% endblock %}
+{% block content %}
+<section class="masthead">
+  <div>
+    <p class="eyebrow">Stage 1 / Document intake</p>
+    <h1>Start with the source.</h1>
+    <p class="lede">Create a bid workspace, add the RFP and company material, then inspect every extracted section in its original context.</p>
+  </div>
+  <form class="create-project" method="post" action="/projects">
+    <label for="name">New bid project</label>
+    <div class="inline-form">
+      <input id="name" name="name" aria-label="Project name" required maxlength="120" />
+      <button type="submit">Create project</button>
+    </div>
+  </form>
+</section>
+
+<section class="project-section" aria-labelledby="projects-title">
+  <div class="section-heading"><p class="eyebrow">Your workspace</p><h2 id="projects-title">Projects</h2></div>
+  {% if projects %}
+    <div class="project-grid">
+      {% for project in projects|reverse %}
+        <a class="project-card" href="/projects/{{ project.id }}">
+          <span class="project-marker">↗</span>
+          <h3>{{ project.name }}</h3>
+          <p>Created {{ project.created_at[:10] }}</p>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state"><strong>There are no bid projects yet.</strong><p>Create one above to upload its source documents.</p></div>
+  {% endif %}
+</section>
+{% endblock %}

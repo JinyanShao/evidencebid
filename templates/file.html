@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{{ file.original_name }} · EvidenceBid{% endblock %}
+{% block content %}
+<nav class="breadcrumb"><a href="/">Projects</a><span>/</span><a href="/projects/{{ project.id }}">{{ project.name }}</a><span>/</span><span>{{ file.original_name }}</span></nav>
+<section class="file-header">
+  <div><p class="eyebrow">{{ file.category.value.replace('_', ' ')|title }}</p><h1>{{ file.original_name }}</h1><p class="lede">{{ file.block_count }} extracted blocks. Every block retains its source location.</p></div>
+  <a class="secondary-button" href="/projects/{{ project.id }}/files/{{ file.id }}/download">Download original</a>
+</section>
+
+<section class="source-viewer" aria-label="Extracted document text">
+  {% for block in blocks %}
+    <article class="source-block">
+      <header><span class="source-kind">{{ block.kind.replace('_', ' ') }}</span><span class="source-location">{{ block.source.label }}{% if block.source.section %} · {{ block.source.section }}{% endif %}</span></header>
+      <div class="source-text">{{ block.text }}</div>
+    </article>
+  {% endfor %}
+</section>
+{% endblock %}

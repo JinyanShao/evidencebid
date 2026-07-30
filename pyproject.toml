@@ -1,0 +1,23 @@
+[project]
+name = "evidencebid"
+version = "0.1.0"
+description = "A source-aware RFP document intake workspace"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "docling>=2.0.0",
+    "fastapi>=0.115.0",
+    "jinja2>=3.1.0",
+    "python-multipart>=0.0.20",
+    "pypdf>=5.0.0",
+    "uvicorn[standard]>=0.34.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.0",
+    "httpx>=0.28.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

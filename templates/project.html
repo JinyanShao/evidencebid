@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}{{ project.name }} · EvidenceBid{% endblock %}
+{% block content %}
+<nav class="breadcrumb"><a href="/">Projects</a><span>/</span><span>{{ project.name }}</span></nav>
+<section class="project-header">
+  <div><p class="eyebrow">Bid workspace</p><h1>{{ project.name }}</h1></div>
+  <p class="scope-note">This version reads text-based PDF, DOCX and XLSX files. It does not run OCR or support scanned PDFs.</p>
+</section>
+
+<section class="two-column">
+  <form class="upload-panel" method="post" action="/projects/{{ project.id }}/files" enctype="multipart/form-data">
+    <p class="eyebrow">Add source file</p>
+    <h2>Upload a document</h2>
+    <label for="category">Document role</label>
+    <select id="category" name="category" required>
+      <option value="rfp">RFP file</option>
+      <option value="attachment">RFP attachment</option>
+      <option value="company_material">Company material</option>
+    </select>
+    <label for="upload">File</label>
+    <input id="upload" name="upload" type="file" accept=".pdf,.docx,.xlsx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required />
+    <p class="help">Supported: text PDF, DOCX, XLSX. XLSX reads worksheet names and cell values only.</p>
+    <button type="submit">Upload and extract</button>
+  </form>
+
+  <aside class="stage-note"><p class="eyebrow">What happens next</p><ol><li>We retain your original file.</li><li>The parser extracts readable document blocks.</li><li>You can inspect the text with its page or worksheet location.</li></ol></aside>
+</section>
+
+<section class="documents" aria-labelledby="documents-title">
+  <div class="section-heading"><p class="eyebrow">Project sources</p><h2 id="documents-title">Uploaded documents</h2></div>
+  {% if files %}
+    <div class="file-list">
+      {% for item in files|reverse %}
+        <article class="file-row">
+          <div class="file-icon">{{ item.file_type|upper }}</div>
+          <div class="file-main"><h3>{{ item.original_name }}</h3><p>{{ item.category.value.replace('_', ' ')|title }} · {{ item.created_at[:10] }}</p>{% if item.status.value == 'ready' %}<p class="meta">{{ item.block_count }} extracted blocks</p>{% endif %}</div>
+          <div class="file-status status-{{ item.status.value }}">{{ item.status.value|title }}</div>
+          <div class="file-action">{% if item.status.value == 'ready' %}<a href="/projects/{{ project.id }}/files/{{ item.id }}">Inspect text</a>{% elif item.status.value == 'failed' %}<span title="{{ item.error_message }}">View error below</span>{% else %}<span>Processing</span>{% endif %}</div>
+          {% if item.status.value == 'failed' %}<p class="file-error"><strong>Could not extract:</strong> {{ item.error_message }}</p>{% endif %}
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state"><strong>No files in this workspace.</strong><p>Add the RFP first, then attach any supporting documents and company material.</p></div>
+  {% endif %}
+</section>
+{% endblock %}
