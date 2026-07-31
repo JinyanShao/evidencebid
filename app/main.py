@@ -1,16 +1,22 @@
 from __future__ import annotations
 
+import csv
+import io
 import shutil
 from pathlib import Path
 from uuid import uuid4
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from app.analyzer import build_checklist
+from app.demo import ensure_demo_project
 from app.models import DATA_DIR, FileCategory, ProcessingStatus, ProjectFile
 from app.parser import DocumentParseError, SUPPORTED_EXTENSIONS, parse_document
+from app.preflight import can_export, review_responses
+from app.responses import build_response_workspace
 from app.store import Store
 
 
@@ -42,6 +48,12 @@ def home(request: Request):
     return templates.TemplateResponse(request, "home.html", {"projects": store.list_projects()})
 
 
+@app.get("/demo")
+def open_demo():
+    project = ensure_demo_project(store)
+    return RedirectResponse(url=f"/projects/{project.id}", status_code=303)
+
+
 @app.post("/projects")
 def create_project(name: str = Form(...)):
     name = name.strip()
@@ -54,10 +66,19 @@ def create_project(name: str = Form(...)):
 @app.get("/projects/{project_id}", response_class=HTMLResponse)
 def project_detail(request: Request, project_id: str):
     project = _project_or_404(project_id)
+    responses = store.get_responses(project_id)
     return templates.TemplateResponse(
         request,
         "project.html",
-        {"project": project, "files": store.list_files(project_id), "categories": FileCategory},
+        {
+            "project": project,
+            "files": store.list_files(project_id),
+            "categories": FileCategory,
+            "checklist": store.get_analysis(project_id),
+            "responses": responses,
+            "preflight_issues": review_responses(responses),
+            "can_export": can_export(responses),
+        },
     )
 
 
@@ -97,6 +118,60 @@ async def upload_file(
     return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
 
 
+@app.post("/projects/{project_id}/analyze")
+def analyze_project(project_id: str):
+    _project_or_404(project_id)
+    files = [project_file for project_file in store.list_files(project_id) if project_file.status == ProcessingStatus.READY]
+    blocks_by_file = {project_file.id: store.get_blocks(project_file.id) for project_file in files}
+    store.save_analysis(project_id, build_checklist(files, blocks_by_file))
+    return RedirectResponse(url=f"/projects/{project_id}#checklist", status_code=303)
+
+
+@app.post("/projects/{project_id}/responses/prepare")
+def prepare_responses(project_id: str):
+    _project_or_404(project_id)
+    files = [project_file for project_file in store.list_files(project_id) if project_file.status == ProcessingStatus.READY]
+    blocks_by_file = {project_file.id: store.get_blocks(project_file.id) for project_file in files}
+    store.save_responses(project_id, build_response_workspace(files, blocks_by_file))
+    return RedirectResponse(url=f"/projects/{project_id}#responses", status_code=303)
+
+
+@app.post("/projects/{project_id}/responses/{response_id}")
+def update_response(project_id: str, response_id: str, draft: str = Form(...)):
+    _project_or_404(project_id)
+    if not store.update_response_draft(project_id, response_id, draft):
+        raise HTTPException(status_code=404, detail="Response entry not found")
+    return RedirectResponse(url=f"/projects/{project_id}#responses", status_code=303)
+
+
+@app.get("/projects/{project_id}/responses/export.csv")
+def export_responses(project_id: str):
+    project = _project_or_404(project_id)
+    entries = store.get_responses(project_id)
+    if not can_export(entries):
+        raise HTTPException(status_code=409, detail="Resolve blocking preflight issues before exporting")
+
+    output = io.StringIO(newline="")
+    writer = csv.writer(output)
+    writer.writerow(["Question", "Response draft", "Status", "RFP source", "Evidence sources"])
+    for entry in entries:
+        writer.writerow(
+            [
+                entry.question,
+                entry.draft,
+                entry.status,
+                entry.source_label,
+                " | ".join(item["label"] for item in entry.evidence),
+            ]
+        )
+    filename = f"{''.join(character if character.isalnum() else '-' for character in project.name).strip('-') or 'evidencebid'}-responses.csv"
+    return StreamingResponse(
+        iter([output.getvalue().encode("utf-8-sig")]),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @app.get("/projects/{project_id}/files/{file_id}", response_class=HTMLResponse)
 def file_detail(request: Request, project_id: str, file_id: str):
     project = _project_or_404(project_id)
@@ -116,6 +191,8 @@ def download_original(project_id: str, file_id: str):
     project_file = _file_or_404(file_id)
     if project_file.project_id != project_id:
         raise HTTPException(status_code=404, detail="File not found in this project")
+    if not project_file.stored_name:
+        raise HTTPException(status_code=404, detail="The demonstration source has no downloadable original file")
     path = UPLOAD_DIR / project_id / project_file.stored_name
     if not path.exists():
         raise HTTPException(status_code=404, detail="Original file is unavailable")

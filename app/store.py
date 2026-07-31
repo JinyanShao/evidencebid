@@ -4,7 +4,7 @@ import json
 from dataclasses import asdict
 from pathlib import Path
 
-from app.models import ExtractedBlock, FileCategory, ProcessingStatus, Project, ProjectFile, SourceLocation
+from app.models import ChecklistItem, ExtractedBlock, FileCategory, ProcessingStatus, Project, ProjectFile, ResponseEntry, SourceLocation
 
 
 class Store:
@@ -13,20 +13,26 @@ class Store:
         self.root.mkdir(parents=True, exist_ok=True)
         self.db_path = self.root / "store.json"
         if not self.db_path.exists():
-            self._write({"projects": [], "files": [], "blocks": {}})
+            self._write({"projects": [], "files": [], "blocks": {}, "analyses": {}, "responses": {}})
 
     def _read(self) -> dict:
-        return json.loads(self.db_path.read_text(encoding="utf-8"))
+        data = json.loads(self.db_path.read_text(encoding="utf-8"))
+        data.setdefault("analyses", {})
+        data.setdefault("responses", {})
+        return data
 
     def _write(self, data: dict) -> None:
         self.db_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
     def create_project(self, name: str) -> Project:
         project = Project.create(name)
+        self.create_project_record(project)
+        return project
+
+    def create_project_record(self, project: Project) -> None:
         data = self._read()
         data["projects"].append(asdict(project))
         self._write(data)
-        return project
 
     def list_projects(self) -> list[Project]:
         return [Project(**item) for item in self._read()["projects"]]
@@ -68,3 +74,30 @@ class Store:
     def get_blocks(self, file_id: str) -> list[ExtractedBlock]:
         blocks = self._read()["blocks"].get(file_id, [])
         return [ExtractedBlock(id=item["id"], kind=item["kind"], text=item["text"], source=SourceLocation(**item["source"])) for item in blocks]
+
+    def save_analysis(self, project_id: str, items: list[ChecklistItem]) -> None:
+        data = self._read()
+        data["analyses"][project_id] = [item.to_dict() for item in items]
+        self._write(data)
+
+    def get_analysis(self, project_id: str) -> list[ChecklistItem]:
+        return [ChecklistItem(**item) for item in self._read()["analyses"].get(project_id, [])]
+
+    def save_responses(self, project_id: str, entries: list[ResponseEntry]) -> None:
+        data = self._read()
+        data["responses"][project_id] = [entry.to_dict() for entry in entries]
+        self._write(data)
+
+    def get_responses(self, project_id: str) -> list[ResponseEntry]:
+        return [ResponseEntry(**item) for item in self._read()["responses"].get(project_id, [])]
+
+    def update_response_draft(self, project_id: str, response_id: str, draft: str) -> bool:
+        data = self._read()
+        entries = data["responses"].get(project_id, [])
+        for entry in entries:
+            if entry["id"] == response_id:
+                entry["draft"] = draft.strip()
+                entry["status"] = "edited"
+                self._write(data)
+                return True
+        return False

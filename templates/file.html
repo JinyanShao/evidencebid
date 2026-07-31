@@ -4,7 +4,7 @@
 <nav class="breadcrumb"><a href="/">Projects</a><span>/</span><a href="/projects/{{ project.id }}">{{ project.name }}</a><span>/</span><span>{{ file.original_name }}</span></nav>
 <section class="file-header">
   <div><p class="eyebrow">{{ file.category.value.replace('_', ' ')|title }}</p><h1>{{ file.original_name }}</h1><p class="lede">{{ file.block_count }} extracted blocks. Every block retains its source location.</p></div>
-  <a class="secondary-button" href="/projects/{{ project.id }}/files/{{ file.id }}/download">Download original</a>
+  {% if file.stored_name %}<a class="secondary-button" href="/projects/{{ project.id }}/files/{{ file.id }}/download">Download original</a>{% endif %}
 </section>
 
 <section class="source-viewer" aria-label="Extracted document text">

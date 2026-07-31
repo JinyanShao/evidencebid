@@ -3,8 +3,42 @@
 {% block content %}
 <nav class="breadcrumb"><a href="/">Projects</a><span>/</span><span>{{ project.name }}</span></nav>
 <section class="project-header">
-  <div><p class="eyebrow">Bid workspace</p><h1>{{ project.name }}</h1></div>
+  <div><p class="eyebrow">{% if project.is_demo %}Demonstration workspace{% else %}Bid workspace{% endif %}</p><h1>{{ project.name }}</h1></div>
   <p class="scope-note">This version reads text-based PDF, DOCX and XLSX files. It does not run OCR or support scanned PDFs.</p>
+</section>
+
+<section class="response-panel" id="responses" aria-labelledby="responses-title">
+  <div class="analysis-heading"><div><p class="eyebrow">Response workspace</p><h2 id="responses-title">Evidence-backed drafts</h2><p>Identify response questions, surface matching company material, then edit the draft with the source record in view.</p></div><form method="post" action="/projects/{{ project.id }}/responses/prepare"><button type="submit">Prepare response drafts</button></form></div>
+  {% if responses %}
+    <div class="preflight-card {% if can_export %}preflight-ready{% else %}preflight-blocked{% endif %}">
+      <div><p class="item-category">Export preflight</p>{% if can_export %}<strong>Ready to export</strong><p>Every response has a usable draft and at least one evidence source.</p>{% else %}<strong>{{ preflight_issues|length }} blocking issue{% if preflight_issues|length != 1 %}s{% endif %}</strong><ul>{% for issue in preflight_issues %}<li>{{ issue.message }}</li>{% endfor %}</ul>{% endif %}</div>
+      {% if can_export %}<a class="button-link" href="/projects/{{ project.id }}/responses/export.csv">Export response CSV</a>{% else %}<span class="disabled-button">Export blocked</span>{% endif %}
+    </div>
+    <div class="response-list">
+      {% for entry in responses %}
+        <article class="response-entry">
+          <div class="response-question"><p class="item-category">RFP question</p><h3>{{ entry.question }}</h3><a href="/projects/{{ project.id }}/files/{{ entry.source_file_id }}">{{ entry.source_label }}</a><p class="response-status status-{{ entry.status.replace(' ', '-') }}">{{ entry.status }}</p></div>
+          <form class="draft-editor" method="post" action="/projects/{{ project.id }}/responses/{{ entry.id }}"><label for="draft-{{ entry.id }}">Response draft</label><textarea id="draft-{{ entry.id }}" name="draft" rows="6">{{ entry.draft }}</textarea><button type="submit">Save draft</button></form>
+          <div class="evidence-list"><p class="item-category">Source material</p>{% if entry.evidence %}{% for evidence in entry.evidence %}<a href="/projects/{{ project.id }}/files/{{ evidence.file_id }}">{{ evidence.label }}</a><p>{{ evidence.text }}</p>{% endfor %}{% else %}<p>No supporting material found.</p>{% endif %}</div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="analysis-empty">No response drafts have been prepared. Add company material and prepare the response workspace.</p>
+  {% endif %}
+</section>
+
+<section class="analysis-panel" id="checklist" aria-labelledby="checklist-title">
+  <div class="analysis-heading"><div><p class="eyebrow">RFP review</p><h2 id="checklist-title">Compliance checklist</h2><p>Extract submission instructions, deadlines, mandatory requirements, attachments, and evaluation criteria from RFP sources.</p></div><form method="post" action="/projects/{{ project.id }}/analyze"><button type="submit">Build checklist</button></form></div>
+  {% if checklist %}
+    <div class="checklist-grid">
+      {% for item in checklist %}
+        <article class="checklist-item category-{{ item.category }}"><p class="item-category">{{ item.title }}</p><p class="item-detail">{{ item.detail }}</p><a href="/projects/{{ project.id }}/files/{{ item.source_file_id }}">{{ item.source_label }}</a></article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="analysis-empty">No checklist has been built for this project. Review source files first, then build the checklist.</p>
+  {% endif %}
 </section>
 
 <section class="two-column">

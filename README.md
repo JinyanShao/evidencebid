@@ -1,6 +1,15 @@
-# EvidenceBid - Stage 1
+# EvidenceBid - Stage 4
 
-EvidenceBid is a source-aware RFP workspace. This stage implements only document intake: projects, categorized uploads, PDF/DOCX/XLSX parsing, and readable source locations.
+EvidenceBid is a source-aware RFP workspace. It turns uploaded bid documents and company material into a traceable compliance checklist, evidence-backed response workspace, and exportable response sheet.
+
+## Demonstration path
+
+1. Start the application.
+2. Select **Open demo project** from the home page.
+3. Review the RFP and company-source files.
+4. Select **Build checklist** to create source-linked submission, deadline, attachment, and mandatory-requirement items.
+5. Select **Prepare response drafts** to create editable drafts from matching company-source material.
+6. Resolve any export preflight issues, then export the evidence-linked response CSV.
 
 ## Scope
 
@@ -9,8 +18,13 @@ EvidenceBid is a source-aware RFP workspace. This stage implements only document
 - Parse DOCX and XLSX files with Docling; extract text PDFs locally without OCR
 - Browse extracted text by page, section, table, or worksheet
 - Preserve original uploads and show clear processing failures
+- Open an in-product demonstration workspace with inspectable source material
+- Build a source-linked RFP compliance checklist
+- Prepare editable response drafts with linked company evidence
+- Block unsupported drafts during export preflight
+- Export completed response drafts and their source trail as UTF-8 CSV
 
-It does **not** analyse RFP requirements, generate answers, perform OCR, or support scanned PDFs.
+It does **not** use an LLM to generate prose, perform OCR, preserve the customer's original document formatting, or support scanned PDFs.
 
 ## Run locally
 

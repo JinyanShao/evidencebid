@@ -26,6 +26,7 @@ class Project:
     id: str
     name: str
     created_at: str
+    is_demo: bool = False
 
     @classmethod
     def create(cls, name: str) -> "Project":
@@ -50,6 +51,35 @@ class ExtractedBlock:
     def to_dict(self) -> dict[str, Any]:
         value = asdict(self)
         return value
+
+
+@dataclass
+class ChecklistItem:
+    id: str
+    category: str
+    title: str
+    detail: str
+    source_file_id: str
+    source_block_id: str
+    source_label: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class ResponseEntry:
+    id: str
+    question: str
+    source_file_id: str
+    source_block_id: str
+    source_label: str
+    draft: str
+    status: str
+    evidence: list[dict[str, str]]
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
 
 
 @dataclass

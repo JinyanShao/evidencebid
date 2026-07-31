@@ -3,17 +3,20 @@
 {% block content %}
 <section class="masthead">
   <div>
-    <p class="eyebrow">Stage 1 / Document intake</p>
+    <p class="eyebrow">Document intake and review</p>
     <h1>Start with the source.</h1>
     <p class="lede">Create a bid workspace, add the RFP and company material, then inspect every extracted section in its original context.</p>
   </div>
-  <form class="create-project" method="post" action="/projects">
-    <label for="name">New bid project</label>
-    <div class="inline-form">
-      <input id="name" name="name" aria-label="Project name" required maxlength="120" />
-      <button type="submit">Create project</button>
-    </div>
-  </form>
+  <div class="action-stack">
+    <a class="demo-button" href="/demo">Open demo project <span>↗</span></a>
+    <form class="create-project" method="post" action="/projects">
+      <label for="name">New bid project</label>
+      <div class="inline-form">
+        <input id="name" name="name" aria-label="Project name" required maxlength="120" />
+        <button type="submit">Create project</button>
+      </div>
+    </form>
+  </div>
 </section>
 
 <section class="project-section" aria-labelledby="projects-title">
